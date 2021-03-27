@@ -1,6 +1,6 @@
 from generator_class import Generator
 from statemachine import State, Transition
-
+from termcolor import colored
 
 class ShrinkMachine:
 
@@ -31,12 +31,12 @@ class ShrinkMachine:
 
         # create State objects for a master
         # ** -> unpack dict to args
-        master_states = [State(**opt) for opt in options1]
-        slave1_states = [State(**opt) for opt in options2]
-        slave2_states = [State(**opt) for opt in options3]
+        self.master_states = [State(**opt) for opt in options1]
+        self.slave1_states = [State(**opt) for opt in options2]
+        self.slave2_states = [State(**opt) for opt in options3]
 
         # valid transitions for a master (indices of states from-to)
-        from_to1 = [
+        self.from_to1 = [
             [0, [1]],
             [1, [2, 3]],
             [2, [1]],
@@ -44,14 +44,14 @@ class ShrinkMachine:
             [4, [5, 0]],
             [5, [0]]
         ]
-        from_to2 = [
+        self.from_to2 = [
             [0, [1]],
             [1, [2]],
             [2, [3]],
             [3, [4]],
             [4, []]
         ]
-        from_to3 = [
+        self.from_to3 = [
             [0, [1]],
             [1, [2]],
             [2, [3]],
@@ -62,9 +62,9 @@ class ShrinkMachine:
         transitions = {"master": {}, "slave1": {}, "slave2": {}}
 
         # machines dict for a states and transitions creating
-        machines = {"master": {"transitions": transitions["master"], "from_to": from_to1, "id": "m_{}_{}", "states": master_states},
-                    "slave1": {"transitions": transitions["slave1"], "from_to": from_to2, "id": "s1_{}_{}", "states": slave1_states},
-                    "slave2": {"transitions": transitions["slave2"], "from_to": from_to3, "id": "s2_{}_{}", "states": slave2_states}}
+        machines = {"master": {"transitions": transitions["master"], "from_to": self.from_to1, "id": "m_{}_{}", "states": self.master_states},
+                    "slave1": {"transitions": transitions["slave1"], "from_to": self.from_to2, "id": "s1_{}_{}", "states": self.slave1_states},
+                    "slave2": {"transitions": transitions["slave2"], "from_to": self.from_to3, "id": "s2_{}_{}", "states": self.slave2_states}}
 
         for key in machines:
             for indices in machines[key]["from_to"]:
@@ -82,7 +82,7 @@ class ShrinkMachine:
 
         # save states and transitions
         self.transitions = transitions
-        self.states = {"master": master_states, "slave1": slave1_states, "slave2": slave2_states}
+        self.states = {"master": self.master_states, "slave1": self.slave1_states, "slave2": self.slave2_states}
         self.current_machine = None
         self.machines = {}
 
@@ -95,7 +95,7 @@ class ShrinkMachine:
         self.machines["master"] = Generator(self.states["master"], self.transitions["master"])
         self.current_machine = "master"
 
-    def run_transition(self, events: list, verbose: bool = False) -> None:
+    def run_transition(self, events: list) -> None:
         '''
         Move to the next state
 
@@ -103,36 +103,34 @@ class ShrinkMachine:
         '''
         for e in events:
             # Run another transition
-            self.transitions[self.current_machine][e]._run(self.machines[self.current_machine])
+            if e in self.get_possible_transitions():
 
-            if verbose:
-                self.get_current_state()
 
-            # Check if there's a time to change machine
-            if self.current_machine == "master":
-                if self.machines[self.current_machine].current_state.value == "Station_incomplete":
-                    self.machines["slave1"] = Generator(self.states["slave1"], self.transitions["slave1"])
-                    self.current_machine = "slave1"
-                if self.machines[self.current_machine].current_state.value == "Station_failure":
-                    self.machines["slave2"] = Generator(self.states["slave2"], self.transitions["slave2"])
-                    self.current_machine = "slave2"
+                self.transitions[self.current_machine][e]._run(self.machines[self.current_machine])
 
-            if self.current_machine == "slave1" and \
-                    self.machines[self.current_machine].current_state.value == "Return_to_shrink_process":
-                self.current_machine = "master"
-                self.transitions[self.current_machine]["m_2_1"]._run(self.machines[self.current_machine])
-                if verbose:
-                    self.get_current_state()
-                self.machines.pop("slave1")
 
-            if self.current_machine == "slave2" and \
-                    self.machines[self.current_machine].current_state.value == "Return_to_process":
-                self.current_machine = "master"
-                self.transitions[self.current_machine]["m_5_0"]._run(self.machines[self.current_machine])
-                if verbose:
-                    self.get_current_state()
-                self.machines.pop("slave2")
+                # Check if there's a time to change machine
+                if self.current_machine == "master":
+                    if self.machines[self.current_machine].current_state.value == "Station_incomplete":
+                        self.machines["slave1"] = Generator(self.states["slave1"], self.transitions["slave1"])
+                        self.current_machine = "slave1"
+                    if self.machines[self.current_machine].current_state.value == "Station_failure":
+                        self.machines["slave2"] = Generator(self.states["slave2"], self.transitions["slave2"])
+                        self.current_machine = "slave2"
 
+                if self.current_machine == "slave1" and \
+                        self.machines[self.current_machine].current_state.value == "Return_to_shrink_process":
+                    self.current_machine = "master"
+                    self.transitions[self.current_machine]["m_2_1"]._run(self.machines[self.current_machine])
+                    self.machines.pop("slave1")
+
+                if self.current_machine == "slave2" and \
+                        self.machines[self.current_machine].current_state.value == "Return_to_process":
+                    self.current_machine = "master"
+                    self.transitions[self.current_machine]["m_5_0"]._run(self.machines[self.current_machine])
+                    self.machines.pop("slave2")
+            else:
+                print(colored('Oj byczq sys32', 'red'))
     def stop(self):
         '''
         Destroys machine
@@ -146,4 +144,17 @@ class ShrinkMachine:
         '''
         Prints current state and possible transitions
         '''
-        print(self.machines[self.current_machine].current_state)
+        return self.machines[self.current_machine].current_state
+
+
+    def get_defined_states(self):
+       return self.master_states, self.slave1_states, self.slave2_states
+
+    def get_defined_transitions(self):
+        return self.from_to1, self.from_to2, self.from_to3
+    def get_possible_transitions(self):
+        if self.machines:
+            return [tran.identifier for tran in self.machines[self.current_machine].current_state.transitions]
+
+    def get_current_machine(self):
+        return self.current_machine
