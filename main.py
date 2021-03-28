@@ -58,6 +58,9 @@ plt.ion()
 
 print("Initial machine: " + str(shrink.get_current_machine()))
 print("Initial state: " + str(shrink.get_current_state()))
+
+fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(int(FIG_WIDTH), int(FIG_HEIGHT)))
+
 while True:
     possible_trans = shrink.get_possible_transitions()
     print("Possible transitions: ")
@@ -65,9 +68,10 @@ while True:
     for i in range(len(possible_trans)):
         print('\t' + str(i) + ": " + str(possible_trans[i]))
     user_tran = None
-    plt.close()
-    fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(int(FIG_WIDTH), int(FIG_HEIGHT)))
+
     ax = axes.flatten()
+    nx.draw_networkx(graph_master, nodelist=list(['Stacja zgrzewająca pusta']), with_labels=True, pos=nx.spiral_layout(graph_master),\
+                     node_size=500, node_color='#3636FF', font_color='#000000', ax=ax[0], linewidths=0.5)
     nx.draw_networkx(graph_master, with_labels=True, pos=nx.spiral_layout(graph_master),\
                      node_size=300, node_color='#6666FF', font_color='#000000', ax=ax[0], linewidths=0.5)
     if str(shrink.get_current_machine()) == 'slave1':
@@ -80,23 +84,30 @@ while True:
         nx.draw_networkx(graph_master, nodelist=list([shrink.get_current_state().name]), with_labels=True, pos=nx.spiral_layout(graph_master),\
                      node_size=300, node_color='#33FF33', font_color='#000000', ax=ax[0])
 
-    ax[0].set_axis_off()
 
+
+    nx.draw_networkx(graph_slave1, with_labels=True, nodelist=list(['Powrót do procesu zgrzewania']), pos=nx.spiral_layout(graph_slave1), \
+                     node_size=500, node_color='#3636FF', font_color='#000000', ax=ax[1])
     nx.draw_networkx(graph_slave1, with_labels=True, pos=nx.spiral_layout(graph_slave1),\
                      node_size=300, node_color='#6666FF', font_color='#000000',  ax=ax[1])
     if str(shrink.get_current_machine()) == 'slave1':
         nx.draw_networkx(graph_slave1, nodelist=list([shrink.get_current_state().name]), with_labels=True, pos=nx.spiral_layout(graph_slave1),\
                      node_size=300, node_color='#33FF33', font_color='#000000', ax=ax[1])
 
-    ax[1].set_axis_off()
+
+
+    nx.draw_networkx(graph_slave2, with_labels=True, nodelist=list(['Powrót do procesu']), pos=nx.spiral_layout(graph_slave2), \
+                     node_size=500, node_color='#3636FF', font_color='#000000', ax=ax[2])
     nx.draw_networkx(graph_slave2, with_labels=True, pos=nx.spiral_layout(graph_slave2),\
                      node_size=300, node_color='#6666FF', font_color='#000000',  ax=ax[2])
     if str(shrink.get_current_machine()) == 'slave2':
         nx.draw_networkx(graph_slave2, nodelist=list([shrink.get_current_state().name]), with_labels=True, pos=nx.spiral_layout(graph_slave2),\
                      node_size=300, node_color='#33FF33', font_color='#000000', ax=ax[2])
+    ax[0].set_axis_off()
+    ax[1].set_axis_off()
     ax[2].set_axis_off()
-    #plt.show()
-    plt.pause(0.5)
+    plt.show()
+    plt.pause(2)
 
     try:
         user_id = int(input("User transition(type a number only): "))
@@ -119,7 +130,6 @@ while True:
 
     states = shrink.get_defined_states()
     trans = shrink.get_defined_transitions()
-
     s = states[0][0].transitions
 plt.close()
 shrink.stop()
