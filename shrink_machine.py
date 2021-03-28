@@ -1,6 +1,8 @@
 from generator_class import Generator
 from statemachine import State, Transition
 from termcolor import colored
+from typing import Tuple
+
 
 class ShrinkMachine:
 
@@ -89,8 +91,6 @@ class ShrinkMachine:
     def start(self) -> None:
         '''
         Creates master
-
-        :return:
         '''
         self.machines["master"] = Generator(self.states["master"], self.transitions["master"])
         self.current_machine = "master"
@@ -99,7 +99,7 @@ class ShrinkMachine:
         '''
         Move to the next state
 
-        :return:
+        :param events: list of the transitions to be performed on the machine.
         '''
         for e in events:
             # Run another transition
@@ -131,30 +131,27 @@ class ShrinkMachine:
                     self.machines.pop("slave2")
             else:
                 print(colored('Oj byczq sys32', 'red'))
-    def stop(self):
-        '''
-        Destroys machine
 
-        :return:
+    def stop(self) -> None:
+        '''
+        Destroys all machines.
         '''
         self.machines = {}
         self.current_machine = None
 
-    def get_current_state(self) -> None:
-        '''
-        Prints current state and possible transitions
-        '''
+    def get_current_state(self) -> State:
         return self.machines[self.current_machine].current_state
 
+    def get_defined_states(self) -> Tuple:
+        return self.master_states, self.slave1_states, self.slave2_states
 
-    def get_defined_states(self):
-       return self.master_states, self.slave1_states, self.slave2_states
-
-    def get_defined_transitions(self):
+    def get_defined_transitions(self) -> Tuple:
         return self.from_to1, self.from_to2, self.from_to3
-    def get_possible_transitions(self):
+
+    def get_possible_transitions(self) -> list:
         if self.machines:
             return [tran.identifier for tran in self.machines[self.current_machine].current_state.transitions]
+        return []
 
-    def get_current_machine(self):
+    def get_current_machine(self) -> str:
         return self.current_machine

@@ -1,15 +1,23 @@
 from shrink_machine import ShrinkMachine
 # import cv2
-shrink = ShrinkMachine()
 from termcolor import colored
 import networkx as nx
 import matplotlib.pyplot as plt
+import sys
+
+
+FIG_WIDTH, FIG_HEIGHT = 9, 8
+
+# Create a shrink machine object
+shrink = ShrinkMachine()
+
 # create paths from transitions (exemplary)
 path_1 = ["m_0_1", "m_1_2", "m_2_1", "m_1_3", "m_3_4"]
 path_2 = ["m_0_2", "m_2_3", "m_3_2", "m_2_4"]
 path_3 = ["m_0_3", "m_3_1", "m_1_2", "m_2_4"]
 paths = [path_1, path_2, path_3]
 
+# When start method is called, master is created
 shrink.start()
 states_master, states_slave1, states_slave2 = shrink.get_defined_states()
 states_master_list = list()
@@ -52,16 +60,16 @@ print("Initial machine: " + str(shrink.get_current_machine()))
 print("Initial state: " + str(shrink.get_current_state()))
 while True:
     possible_trans = shrink.get_possible_transitions()
-    print("Possible transition: ")
+    print("Possible transitions: ")
     #user_tran = input(f"Expected trans is{shrink.get_possible_transitions()}: ")
     for i in range(len(possible_trans)):
         print('\t' + str(i) + ": " + str(possible_trans[i]))
     user_tran = None
     plt.close()
-    fig, axes = plt.subplots(nrows=3, ncols=1)
+    fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(int(FIG_WIDTH), int(FIG_HEIGHT)))
     ax = axes.flatten()
     nx.draw_networkx(graph_master, with_labels=True, pos=nx.spiral_layout(graph_master),\
-                     node_size=300, node_color='#6666FF', font_color='#000000', ax=ax[0])
+                     node_size=300, node_color='#6666FF', font_color='#000000', ax=ax[0], linewidths=0.5)
     if str(shrink.get_current_machine()) == 'slave1':
         nx.draw_networkx(graph_master, nodelist=list(['Stacja wysłała sygnał i czeka na podanie butelki']), with_labels=True, pos=nx.spiral_layout(graph_master),\
                      node_size=300, node_color='#33FF33', font_color='#000000', ax=ax[0])
@@ -103,7 +111,7 @@ while True:
     print()
 
     if user_tran == 'q':
-        break
+        sys.exit(1)
     if user_tran is not None:
         shrink.run_transition([user_tran])
     print("Current machine: " + str(shrink.get_current_machine()))
