@@ -1,4 +1,4 @@
-from generator_class import Generator
+from shrink_machine.generator_class import Generator
 from statemachine import State, Transition
 from termcolor import colored
 from typing import Tuple
