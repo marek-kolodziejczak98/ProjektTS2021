@@ -145,7 +145,7 @@ target_link_libraries(move_up_node ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(move_up_node ${PROJECT_NAME}_generate_messages_cpp)
+#add_dependencies(move_up_node ${PROJECT_NAME}_generate_messages_cpp)
 
 
 

@@ -1,7 +1,20 @@
+#!/usr/bin/env python3
 from shrink_machine import ShrinkMachine
 from termcolor import colored
 import sys
 from machine_graph import MachineGraph
+import rospy
+from std_msgs.msg import String
+
+
+def talker(command):
+    pub = rospy.Publisher('commands', String, queue_size=10)
+    rospy.init_node('talker', anonymous=True)
+    #rate = rospy.Rate(1)  # 10hz
+    #while not rospy.is_shutdown():
+    pub.publish(command)
+        #rate.sleep()
+
 
 FIG_WIDTH, FIG_HEIGHT = 9, 8
 
@@ -35,11 +48,15 @@ while True:
         user_id = int(input("User transition(type a number only): "))
         if isinstance(user_id, int) and user_id < len(possible_trans):
             user_tran = possible_trans[user_id]
+            try:
+                talker(possible_trans[user_id])
+            except rospy.ROSInterruptException:
+                pass
         else:
             print(colored('main Oj byczq sys32', 'red'))
 
     except:
-        print("")
+        print("It wasnt't a number")
 
     print()
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import roslib
-#roslib.load_manifest('tf_tutorial')
+#roslib.load_manifest('shrink_machine_ros')
 import rospy
 import tf
 import tf.msg
