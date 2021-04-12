@@ -5,6 +5,8 @@ import sys
 from machine_graph import MachineGraph
 import rospy
 from std_msgs.msg import String
+from robot_control import RobotControl
+import click
 
 
 def talker(command):
@@ -16,60 +18,78 @@ def talker(command):
         #rate.sleep()
 
 
-FIG_WIDTH, FIG_HEIGHT = 9, 8
+@click.command()
+@click.option('--graph', is_flag=True, help='Graph visualization.')
+@click.option('--gazebo', is_flag=True, prompt='If you want to visualize in gazebo - robot here :).')
+def main(graph, gazebo):
+    if gazebo:
+        rc = RobotControl()
 
-# Create a shrink machine object
-shrink = ShrinkMachine()
+    FIG_WIDTH, FIG_HEIGHT = 9, 8
 
-# When start method is called, master is created
-shrink.start()
-states_master, states_slave1, states_slave2 = shrink.get_defined_states()
-edges_master, edges_slave1, edges_slave2 = shrink.get_defined_transitions()
+    # Create a shrink machine object
+    shrink = ShrinkMachine()
 
-graph = MachineGraph((states_master, states_slave1, states_slave2), (edges_master, edges_slave1, edges_slave2),
-                     FIG_WIDTH, FIG_HEIGHT)
+    # When start method is called, master is created
+    shrink.start()
+    states_master, states_slave1, states_slave2 = shrink.get_defined_states()
+    edges_master, edges_slave1, edges_slave2 = shrink.get_defined_transitions()
 
-print("Initial machine: " + str(shrink.get_current_machine()))
-print("Initial state: " + str(shrink.get_current_state()))
+    if graph:
+        graph = MachineGraph((states_master, states_slave1, states_slave2), (edges_master, edges_slave1, edges_slave2),
+                             FIG_WIDTH, FIG_HEIGHT)
+
+    print("Initial machine: " + str(shrink.get_current_machine()))
+    print("Initial state: " + str(shrink.get_current_state()))
 
 
-while True:
-    possible_trans = shrink.get_possible_transitions()
-    print("INFO: if the state doesn't change, click enter :)")
-    print("Possible transitions: ")
-    #user_tran = input(f"Expected trans is{shrink.get_possible_transitions()}: ")
-    for i in range(len(possible_trans)):
-        print('\t' + str(i) + ": " + str(possible_trans[i]))
-    user_tran = None
+    while True:
+        possible_trans = shrink.get_possible_transitions()
+        print("INFO: if the state doesn't change, click enter :)")
+        print("Possible transitions: ")
+        #user_tran = input(f"Expected trans is{shrink.get_possible_transitions()}: ")
+        for i in range(len(possible_trans)):
+            print('\t' + str(i) + ": " + str(possible_trans[i]))
+        user_tran = None
 
-    graph.display(shrink)
+        if graph:
+            graph.display(shrink)
 
-    try:
-        user_id = int(input("User transition(type a number only): "))
-        if isinstance(user_id, int) and user_id < len(possible_trans):
-            user_tran = possible_trans[user_id]
-            try:
-                talker(possible_trans[user_id])
-            except rospy.ROSInterruptException:
-                pass
-        else:
-            print(colored('main Oj byczq sys32', 'red'))
+        try:
+            user_id = int(input("User transition(type a number only): "))
+            if isinstance(user_id, int) and user_id < len(possible_trans):
+                user_tran = possible_trans[user_id]
+                try:
+                    talker(possible_trans[user_id])
+                except rospy.ROSInterruptException:
+                    pass
+            else:
+                print(colored('main Oj byczq sys32', 'red'))
 
-    except:
-        print("It wasnt't a number")
+        except:
+            print("It wasnt't a number")
 
-    print()
+        print()
 
-    if user_tran == 'q':
-        sys.exit(1)
-    if user_tran is not None:
-        shrink.run_transition([user_tran])
-    print("Current machine: " + str(shrink.get_current_machine()))
-    print("Current state: " + str(shrink.get_current_state()))
+        if user_tran == 'q':
+            sys.exit(1)
+        if user_tran is not None:
+            shrink.run_transition([user_tran])
+        print("Current machine: " + str(shrink.get_current_machine()))
+        print("Current state: " + str(shrink.get_current_state()))
 
-    states = shrink.get_defined_states()
-    trans = shrink.get_defined_transitions()
-    s = states[0][0].transitions
-plt.close()
-shrink.stop()
+        states = shrink.get_defined_states()
+        trans = shrink.get_defined_transitions()
+        s = states[0][0].transitions
+
+        if gazebo:
+            rc.move_robot()
+
+    plt.close()
+    shrink.stop()
+
+
+if __name__ == '__main__':
+    main()
+
 
