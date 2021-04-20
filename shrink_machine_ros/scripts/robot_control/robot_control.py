@@ -14,6 +14,14 @@ import numpy as np
 
 
 class RobotControl:
+
+    state_to_gripper_pose = {"Robot_in_base_position": [[0.25, 0.25, 0.4], [0.707, 0.707, 0.0, 0.0]],
+                             "Robot_ready": [[0.35, 0.35, 0.15], [0.707, 0.707, 0.0, 0.0]],
+                             "Robot_holding_beer": [[0.35, 0.35, 0.15], [0.707, 0.707, 0.0, 0.0]],
+                             "Robot_in_final_position": [[0.1, 0.4, 0.3], [0.707, 0.707, 0.0, 0.0]],
+                             "Return_to_shrink_process": [[0.25, 0.25, 0.4], [0.707, 0.707, 0.0, 0.0]],
+                             "Station_waiting": [[0.25, 0.25, 0.4], [0.707, 0.707, 0.0, 0.0]]}
+
     def __init__(self):
         moveit_commander.roscpp_initialize(sys.argv)
         rospy.init_node("ik_moveit")
@@ -27,55 +35,38 @@ class RobotControl:
         self.arm_move_group = moveit_commander.MoveGroupCommander("manipulator")
         self.robot_commander = moveit_commander.RobotCommander()
 
-        # compute reference position of the gripper ( link)
-        self.listener = tf.TransformListener()
-        self.listener.waitForTransform('/base_link', '/object_link', rospy.Time(), rospy.Duration(4.0))
+    def move_robot(self, current_state):
 
-    def move_robot(self, current_state=True):
-        try:
-            (trans_object_in_base, rot_object_in_base) = self.listener.lookupTransform('/base_link', '/object_link',
-                                                                                  rospy.Time(0))
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            pass
-        try:
-            (trans_ee_in_gripper, rot_ee_in_gripper) = self.listener.lookupTransform('/gripper', '/ee_link', rospy.Time(0))
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            pass
+        if current_state in self.state_to_gripper_pose:
+            print(f"Moving robot to the pose p={self.state_to_gripper_pose[current_state][0]},"
+                  f" q={self.state_to_gripper_pose[current_state][1]}")
 
-        matrix_object_in_base = self.pose_to_matrix(self.pq_to_pose(trans_object_in_base, rot_object_in_base))
-        matrix_ee_in_gripper = self.pose_to_matrix(self.pq_to_pose(trans_ee_in_gripper, rot_ee_in_gripper))
-        ref_pose = self.matrix_to_pose(matrix_object_in_base.dot(matrix_ee_in_gripper))
+            # set reference position of the gripper ( link)
+            pose_ik = PoseStamped()
+            pose_ik.header.frame_id = "base_link"
+            pose_ik.header.stamp = rospy.Time.now()
+            pose_ik.pose = self.pq_to_pose(*self.state_to_gripper_pose[current_state])
 
-        # set reference position of the gripper ( link)
-        pose_ik = PoseStamped()
-        pose_ik.header.frame_id = "base_link"
-        pose_ik.header.stamp = rospy.Time.now()
-        pose_ik.pose = ref_pose
+            req = GetPositionIKRequest()
+            req.ik_request.group_name = "manipulator"
+            req.ik_request.robot_state = self.robot_commander.get_current_state()
+            req.ik_request.avoid_collisions = True
+            req.ik_request.ik_link_name = self.arm_move_group.get_end_effector_link()
+            req.ik_request.pose_stamped = pose_ik
+            ik_response = self.compute_ik_srv(req)
 
-        req = GetPositionIKRequest()
-        req.ik_request.group_name = "manipulator"
-        req.ik_request.robot_state = self.robot_commander.get_current_state()
-        req.ik_request.avoid_collisions = True
-        req.ik_request.ik_link_name = self.arm_move_group.get_end_effector_link()
-        req.ik_request.pose_stamped = pose_ik
-        print(self.arm_move_group.get_end_effector_link())
-        ik_response = self.compute_ik_srv(req)
-
-        if ik_response.error_code.val == 1:
-            print('Goal state:')
-            print(ik_response.solution.joint_state.position)
-            goal_pose = FollowJointTrajectoryActionGoal()
-            # print (arm_move_group.get_joints())
-            goal_pose.goal.trajectory.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
-                                                     'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
-            goal_pose.goal.trajectory.points.append(JointTrajectoryPoint())
-            goal_pose.goal.trajectory.points[0].positions = ik_response.solution.joint_state.position
-            goal_pose.goal.trajectory.points[0].velocities = [0, 0, 0, 0, 0, 0]
-            goal_pose.goal.trajectory.points[0].time_from_start = rospy.Duration.from_sec(1.0)
-            self.pub.publish(goal_pose)
-        else:
-            print('Could not find solution to inverse kinematic')
-
+            if ik_response.error_code.val == 1:
+                goal_pose = FollowJointTrajectoryActionGoal()
+                # print (arm_move_group.get_joints())
+                goal_pose.goal.trajectory.joint_names = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
+                                                         'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
+                goal_pose.goal.trajectory.points.append(JointTrajectoryPoint())
+                goal_pose.goal.trajectory.points[0].positions = ik_response.solution.joint_state.position
+                goal_pose.goal.trajectory.points[0].velocities = [0, 0, 0, 0, 0, 0]
+                goal_pose.goal.trajectory.points[0].time_from_start = rospy.Duration.from_sec(1.0)
+                self.pub.publish(goal_pose)
+            else:
+                print('Could not find solution to inverse kinematic')
 
     @staticmethod
     def pose_to_matrix(pose):

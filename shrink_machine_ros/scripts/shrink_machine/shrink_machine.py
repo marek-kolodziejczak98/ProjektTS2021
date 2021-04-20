@@ -105,9 +105,7 @@ class ShrinkMachine:
             # Run another transition
             if e in self.get_possible_transitions():
 
-
                 self.transitions[self.current_machine][e]._run(self.machines[self.current_machine])
-
 
                 # Check if there's a time to change machine
                 if self.current_machine == "master":

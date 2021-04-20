@@ -7,6 +7,7 @@ import rospy
 from std_msgs.msg import String
 from robot_control import RobotControl
 import click
+import roslib
 
 
 def talker(command):
@@ -21,11 +22,11 @@ def talker(command):
 @click.command()
 @click.option('--graph', is_flag=True, help='Graph visualization.')
 @click.option('--gazebo', is_flag=True, prompt='If you want to visualize in gazebo - robot here :).')
-def main(graph, gazebo):
+@click.option('-w', '--graph-width', 'graph_width', default=9, help='Width of the window with graph.')
+@click.option('-h', '--graph-height', 'graph_height', default=8, help='Height of the window with graph.')
+def main(graph, gazebo, graph_width, graph_height):
     if gazebo:
         rc = RobotControl()
-
-    FIG_WIDTH, FIG_HEIGHT = 9, 8
 
     # Create a shrink machine object
     shrink = ShrinkMachine()
@@ -37,11 +38,10 @@ def main(graph, gazebo):
 
     if graph:
         graph = MachineGraph((states_master, states_slave1, states_slave2), (edges_master, edges_slave1, edges_slave2),
-                             FIG_WIDTH, FIG_HEIGHT)
+                             graph_width, graph_height)
 
     print("Initial machine: " + str(shrink.get_current_machine()))
     print("Initial state: " + str(shrink.get_current_state()))
-
 
     while True:
         possible_trans = shrink.get_possible_transitions()
@@ -56,23 +56,16 @@ def main(graph, gazebo):
             graph.display(shrink)
 
         try:
-            user_id = int(input("User transition(type a number only): "))
+            user_id = int(input("User transition (type a number only): "))
             if isinstance(user_id, int) and user_id < len(possible_trans):
                 user_tran = possible_trans[user_id]
-                try:
-                    talker(possible_trans[user_id])
-                except rospy.ROSInterruptException:
-                    pass
             else:
                 print(colored('main Oj byczq sys32', 'red'))
-
+                break
         except:
-            print("It wasnt't a number")
+            print("It wasnt't a number\n")
+            break
 
-        print()
-
-        if user_tran == 'q':
-            sys.exit(1)
         if user_tran is not None:
             shrink.run_transition([user_tran])
         print("Current machine: " + str(shrink.get_current_machine()))
@@ -83,9 +76,8 @@ def main(graph, gazebo):
         s = states[0][0].transitions
 
         if gazebo:
-            rc.move_robot()
+            rc.move_robot(shrink.get_current_state().value)
 
-    plt.close()
     shrink.stop()
 
 

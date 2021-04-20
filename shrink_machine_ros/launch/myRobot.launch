@@ -5,7 +5,7 @@
   <arg name="rvizconfig" default="$(find shrink_machine_ros)/rviz/myRobot.rviz" />
   <arg name="limited" default="false"/>
   <arg name="paused" default="false"/>
-  <arg name="gui" default="true"/>
+  <arg name="gui" default="false"/>
   <arg name="sim" default="true"/>
   
   <!-- startup simulated world -->
